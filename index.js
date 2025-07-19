@@ -14,7 +14,7 @@ const cors = require('cors');
 const app = express();
 
 app.use(cors({
-  origin: ["http://localhost:8081", "http://localhost:3000"], // Allow requests from frontend
+  origin: ["http://localhost:8080", "http://localhost:8081", "http://localhost:3000"], // Allow requests from frontend
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "Accept"],
   credentials: true
@@ -34,13 +34,13 @@ app.use((req, res, next) => {
   next();
 });
 
-// Optional: Debug middleware (can be removed in production)
-// app.use((req, res, next) => {
-//   console.log(`${req.method} ${req.path}`);
-//   console.log('Headers:', req.headers);
-//   console.log('Body:', req.body);
-//   next();
-// });
+// Debug middleware for troubleshooting
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  next();
+});
 
  const connectdb= async()=>{
    await mongoose
@@ -65,7 +65,36 @@ const User = mongoose.model('User', userSchema);
 app.get('/',(req,res)=>{
   res.json({message:" hello unifiedevent"})
 })
+
+// Test email configuration endpoint
+app.get('/test-email', async (req, res) => {
+  try {
+    console.log('Testing email configuration...');
+    console.log('Email User:', process.env.EMAIL_USER);
+    console.log('Email Pass length:', process.env.EMAIL_PASS ? process.env.EMAIL_PASS.length : 'undefined');
+
+    // Verify transporter
+    await transporter.verify();
+    console.log('✅ Email configuration is valid');
+    res.json({
+      message: 'Email configuration is valid',
+      emailUser: process.env.EMAIL_USER,
+      passLength: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.length : 0
+    });
+  } catch (error) {
+    console.error('❌ Email configuration error:', error);
+    res.status(500).json({
+      error: 'Email configuration invalid',
+      details: error.message,
+      emailUser: process.env.EMAIL_USER,
+      passLength: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.length : 0
+    });
+  }
+})
 app.post('/signup', async (req, res) => {
+  console.log('=== SIGNUP REQUEST ===');
+  console.log('Body:', req.body);
+  console.log('Headers:', req.headers);
   try {
     const { username, email, password, confirmPassword } = req.body;
 
@@ -144,6 +173,9 @@ let otpStore = {};
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -151,10 +183,15 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: false
   },
+  debug: true, // Enable debug logging
+  logger: true // Enable logger
 });
 
 
 app.post('/forgot-password', async (req, res) => {
+  console.log('=== FORGOT PASSWORD REQUEST ===');
+  console.log('Body:', req.body);
+  console.log('Headers:', req.headers);
   try {
     const { email } = req.body;
 
@@ -175,11 +212,33 @@ app.post('/forgot-password', async (req, res) => {
       text: `Your OTP for password reset is ${otp}`,
     };
 
+    // Debug email configuration
+    console.log('=== EMAIL DEBUG INFO ===');
+    console.log('EMAIL_USER:', process.env.EMAIL_USER);
+    console.log('EMAIL_PASS length:', process.env.EMAIL_PASS?.length);
+    console.log('EMAIL_PASS first 4 chars:', process.env.EMAIL_PASS?.substring(0, 4));
+    console.log('Attempting to send email to:', email);
+
+    // Try to send real email first
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
-        return res.status(500).json({ error: 'Failed to send OTP' });
+        console.error('Email sending error:', error);
+        console.log('=== EMAIL FAILED - Using Development Mode ===');
+        console.log('To:', email);
+        console.log('OTP:', otp);
+        console.log('Error details:', error.message);
+
+        // Fallback to development mode if email fails
+        return res.status(200).json({
+          message: 'OTP sent to your email (Email service unavailable - check console for OTP)',
+          developmentOTP: otp,
+          emailError: error.message
+        });
       }
-      res.status(200).json({ message: 'OTP sent to your email' });
+
+      console.log('✅ Email sent successfully to:', email);
+      console.log('Email response:', info.response);
+      res.status(200).json({ message: 'OTP sent to your email successfully!' });
     });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -224,6 +283,10 @@ const PORT = process.env.PORT || 4500;
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    console.log('=== EMAIL CONFIGURATION ===');
+    console.log('EMAIL_USER:', process.env.EMAIL_USER);
+    console.log('EMAIL_PASS length:', process.env.EMAIL_PASS?.length);
+    console.log('EMAIL_PASS:', process.env.EMAIL_PASS);
   });
 }
 
