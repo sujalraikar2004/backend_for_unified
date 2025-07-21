@@ -14,10 +14,11 @@ const cors = require('cors');
 const app = express();
 
 app.use(cors({
-  origin: ["http://localhost:8080", "http://localhost:8081", "http://localhost:3000"], // Allow requests from frontend
+  origin: true, // Allow all origins
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Accept"],
-  credentials: true
+  allowedHeaders: ["Content-Type", "Authorization", "Accept", "X-Requested-With"],
+  credentials: true,
+  optionsSuccessStatus: 200 // For legacy browser support
 }));
 app.use(bodyParser.json());
 app.use(bodyParser.text({ type: 'text/plain' }));
@@ -30,6 +31,17 @@ app.use((req, res, next) => {
     } catch (e) {
       console.error('Failed to parse text/plain as JSON:', e);
     }
+  }
+  next();
+});
+
+// Handle preflight requests
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
+    return res.sendStatus(200);
   }
   next();
 });
