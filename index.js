@@ -78,6 +78,17 @@ app.get('/',(req,res)=>{
   res.json({message:" hello unifiedevent"})
 })
 
+// Debug endpoint to check environment variables
+app.get('/debug', (req, res) => {
+  res.json({
+    nodeEnv: process.env.NODE_ENV,
+    mongoUri: process.env.MONGODB_URI ? 'SET' : 'NOT SET',
+    emailUser: process.env.EMAIL_USER || 'NOT SET',
+    emailPass: process.env.EMAIL_PASS ? 'SET (length: ' + process.env.EMAIL_PASS.length + ')' : 'NOT SET',
+    port: process.env.PORT || 'NOT SET'
+  });
+});
+
 // Test email configuration endpoint
 app.get('/test-email', async (req, res) => {
   try {
