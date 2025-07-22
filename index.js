@@ -55,11 +55,21 @@ app.use((req, res, next) => {
 });
 
  const connectdb= async()=>{
-   await mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.error(err));
+   try {
+     console.log('Attempting to connect to MongoDB...');
+     console.log('MongoDB URI exists:', !!process.env.MONGODB_URI);
+     console.log('MongoDB URI starts with:', process.env.MONGODB_URI?.substring(0, 20));
 
+     await mongoose.connect(process.env.MONGODB_URI);
+     console.log('✅ MongoDB connected successfully');
+   } catch (err) {
+     console.error('❌ MongoDB connection error:', err.message);
+     console.error('Full error:', err);
+     // Don't exit in production, let Vercel handle it
+     if (process.env.NODE_ENV !== 'production') {
+       process.exit(1);
+     }
+   }
  }
  connectdb();
 

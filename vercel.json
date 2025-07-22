@@ -11,14 +11,12 @@
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "/index.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.js"
     }
-  ],
-  "env": {
-    "MONGODB_URI": "mongodb+srv://sujalraikar84:sujal123@cluster0.ixqhj.mongodb.net/unified_student_community?retryWrites=true&w=majority&appName=Cluster0",
-    "EMAIL_USER": "sujalraikar84@gmail.com",
-    "EMAIL_PASS": "rtkztkzuzfhlpese",
-    "PORT": "4500"
-  }
+  ]
 }
